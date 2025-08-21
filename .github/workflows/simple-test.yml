@@ -1,0 +1,51 @@
+name: Simple Test
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Debug - List files
+      run: |
+        echo "=== Current directory ==="
+        pwd
+        echo "=== Files in current directory ==="
+        ls -la
+        echo "=== Files in down directory ==="
+        ls -la down/
+        echo "=== Gradle files ==="
+        find . -name "*.gradle*" -o -name "gradlew*"
+        
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Test Gradle wrapper
+      run: |
+        cd down
+        echo "=== Gradle wrapper permissions ==="
+        ls -la gradlew
+        echo "=== Gradle version ==="
+        ./gradlew --version
+        
+    - name: Run tests
+      run: |
+        cd down
+        echo "=== Running tests ==="
+        ./gradlew test --info
+        
+    - name: Build application
+      run: |
+        cd down
+        echo "=== Building application ==="
+        ./gradlew build -x test --info
