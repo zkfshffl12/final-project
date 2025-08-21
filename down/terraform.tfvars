@@ -1,0 +1,10 @@
+environment = "production"
+aws_region = "us-east-1"
+db_password = "your-secure-password"
+ssh_public_key = "ssh-rsa AAAA..."
+instance_type = "t3.medium"
+db_name = "game_db"
+db_username = "admin"
+desired_capacity = 2
+max_size = 4
+min_size = 1

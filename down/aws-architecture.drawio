@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="5.0" etag="new-architecture" version="22.1.16" type="device">
+  <diagram name="AWS Architecture" id="new-architecture">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- CloudFront -->
+        <mxCell id="cloudfront" value="CloudFront CDN&#xa;정적 파일 캐싱 및 전송" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="480" y="40" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- S3 -->
+        <mxCell id="s3" value="S3 Bucket&#xa;정적 리소스 저장" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="480" y="160" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- ALB -->
+        <mxCell id="alb" value="Application Load Balancer&#xa;HTTP/HTTPS 트래픽 분산" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="480" y="280" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- EC2 -->
+        <mxCell id="ec2" value="EC2 Instances&#xa;Spring Boot 백엔드 API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="480" y="400" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- RDS -->
+        <mxCell id="rds" value="RDS MySQL&#xa;데이터베이스" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="480" y="520" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- VPC -->
+        <mxCell id="vpc" value="VPC + Security Groups&#xa;네트워크 격리" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="240" width="280" height="320" as="geometry" />
+        </mxCell>
+        
+
+        
+        <!-- CloudWatch -->
+        <mxCell id="cloudwatch" value="CloudWatch&#xa;모니터링" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="720" y="520" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections -->
+        <mxCell id="edge1" edge="1" parent="1" source="cloudfront" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge2" edge="1" parent="1" source="cloudfront" target="alb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge3" edge="1" parent="1" source="alb" target="ec2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge4" edge="1" parent="1" source="ec2" target="rds">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+
+        
+        <mxCell id="edge6" edge="1" parent="1" source="ec2" target="cloudwatch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
