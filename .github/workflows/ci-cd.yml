@@ -35,7 +35,10 @@ jobs:
           ${{ runner.os }}-gradle-
           
     - name: Run tests
-      run: cd down && ./gradlew test
+      run: |
+        cd down
+        chmod +x gradlew
+        ./gradlew test
       
     - name: Upload test results
       uses: actions/upload-artifact@v3
@@ -70,7 +73,10 @@ jobs:
           ${{ runner.os }}-gradle-
           
     - name: Build with Gradle
-      run: cd down && ./gradlew build -x test
+      run: |
+        cd down
+        chmod +x gradlew
+        ./gradlew build -x test
       
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3

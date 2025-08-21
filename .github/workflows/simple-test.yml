@@ -35,17 +35,23 @@ jobs:
         cd down
         echo "=== Gradle wrapper permissions ==="
         ls -la gradlew
+        echo "=== Making gradlew executable ==="
+        chmod +x gradlew
         echo "=== Gradle version ==="
         ./gradlew --version
         
     - name: Run tests
       run: |
         cd down
+        echo "=== Making gradlew executable ==="
+        chmod +x gradlew
         echo "=== Running tests ==="
         ./gradlew test --info
         
     - name: Build application
       run: |
         cd down
+        echo "=== Making gradlew executable ==="
+        chmod +x gradlew
         echo "=== Building application ==="
         ./gradlew build -x test --info
