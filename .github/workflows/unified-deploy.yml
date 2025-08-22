@@ -43,8 +43,8 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: game-server
-  ECS_CLUSTER: game-cluster
-  ECS_SERVICE: game-service
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER || 'game-cluster' }}
+  ECS_SERVICE: ${{ secrets.ECS_SERVICE || 'game-service' }}
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   TF_VERSION: '1.5.0'
@@ -162,11 +162,11 @@ jobs:
     - name: Get S3 bucket name
       id: get-bucket
       run: |
-        # S3 버킷 이름을 직접 찾기
-        BUCKET_NAME=$(aws s3 ls | grep static-website | awk '{print $3}')
+        # GitHub Secrets에서 S3 버킷 이름 가져오기
+        BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
         
         if [ -z "$BUCKET_NAME" ]; then
-          echo "S3 bucket not found. Skipping static deployment."
+          echo "S3 bucket name not found in secrets. Skipping static deployment."
           echo "skip_deploy=true" >> $GITHUB_OUTPUT
         else
           echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
