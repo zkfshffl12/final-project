@@ -308,7 +308,7 @@ jobs:
 
   # 5. ECS 배포
   deploy-ecs:
-    needs: [docker-build, terraform-deploy]
+    needs: [terraform-deploy]
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -329,13 +329,18 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
       
-    - name: Build, tag, and push image to Amazon ECR
+    - name: Pull and tag image for ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        cd down
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        # GitHub Container Registry에서 이미지 가져오기
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        
+        # ECR용으로 태그 변경
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        
+        # ECR에 푸시
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
         
