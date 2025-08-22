@@ -1,5 +1,5 @@
 resource "aws_lb" "main" {
-  name               = "${var.environment}-alb"
+  name_prefix        = "${var.environment}-alb-"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.alb_security_group_id]
@@ -14,10 +14,10 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "main" {
-  name     = "${var.environment}-tg"
-  port     = 8080
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
+  name_prefix = "${var.environment}-tg-"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
 
   health_check {
     enabled             = true

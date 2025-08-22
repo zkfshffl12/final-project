@@ -1,6 +1,6 @@
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "application" {
-  name              = "/aws/application/${var.environment}"
+  name              = "/aws/application/${var.environment}-${formatdate("YYYYMMDD", timestamp())}"
   retention_in_days = 30
 
   tags = {
@@ -10,7 +10,7 @@ resource "aws_cloudwatch_log_group" "application" {
 }
 
 resource "aws_cloudwatch_log_group" "ec2" {
-  name              = "/ec2/${var.environment}-spring-boot"
+  name              = "/ec2/${var.environment}-spring-boot-${formatdate("YYYYMMDD", timestamp())}"
   retention_in_days = 30
 
   tags = {
@@ -66,7 +66,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
 
 # CloudWatch Dashboard
 resource "aws_cloudwatch_dashboard" "main" {
-  dashboard_name = "${var.environment}-dashboard"
+  dashboard_name = "${var.environment}-dashboard-${formatdate("YYYYMMDD", timestamp())}"
 
   dashboard_body = jsonencode({
     widgets = [

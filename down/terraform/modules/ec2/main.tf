@@ -107,7 +107,7 @@ data "aws_ami" "amazon_linux_2" {
 
 # Auto Scaling Group for high availability
 resource "aws_autoscaling_group" "main" {
-  name                      = "${var.environment}-asg"
+  name_prefix               = "${var.environment}-asg-"
   desired_capacity          = var.desired_capacity
   max_size                  = var.max_size
   min_size                  = var.min_size
