@@ -2,7 +2,7 @@
 aws_region = "us-east-1"
 
 # Environment
-environment = "production"
+environment = "production-new"
 
 # VPC CIDR
 vpc_cidr = "10.0.0.0/16"
@@ -20,7 +20,7 @@ db_password = "GameServer2024!"
 instance_type = "t3.medium"
 
 # SSH Public Key (REPLACE WITH YOUR SSH PUBLIC KEY)
-ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDk1V1fFLANnf/96fbBvhfIpcf+61vtjzjlDY9RhBHC7jSd4Q0D7DTUtzLOS2+wH46Nm+FaT+7CBOiu9hpNfegAeHQg/d8AKFxj1h7yKNqu4vZgnKI+y9bpTjSpwHn7YjEy1xhrClEe1VwbpZPP2DWjBt5wBTIySY9b9bU3M6f0Zbob8HUV/S6GXQd+4oQBLevB+MeKH803+HBE18cN3lQaT6/oQBLreJZVo5EkbIeH8D6JC0FdK1/rT+C0J57t+5v1k40MfdplnGPYUNXXHTfRO93xo1hrk8ENbec1QIEJr06nzwpjjKXrDSq/vlQhB1JZjWPN3O0HLIHGekq+k3VooxOFDEomIaWC/H6/1OeRO97GF4hOSUJEFGhtp2AZQ6ZbWWiNNt1Bo7m/8HrVk8uLD/yeHIbRI2z229XMuWxcxHxBHqga3Zisdm2hX5uOOQ/OwUMg2Kvocckj+f/cxBKWpinG5jZ4TdrM+JuSw6YH6txZQBNHmx4Mw0p2mVVdFVpZ1LaG4LMAOBFYxn+y49/PDrOvVU+ONzAe/j1PKmiRwJVzxsNpsp39kI2O5jMTwiBCieGlaLqcSvVfFO1MylojMk+U+A7VecelqPoR6Hbjs7OdAKIiMnwKrjCd0Ao4F5qQPJ3Ui1TYXfpxDOokTmesJFa7qIJDSOiVm3+JXa5gOw== edu03-02@EDU01-10"
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDHyiviqN2z5WYE/2HM8JlWYqCuQIZy5CojXzzryzfK7yqibA9fHxX6rhHCJJFp96Ldl7Ywma8alaWBmQIKRlyi29L9FyE7b8LvwWpIZcd0OtemCfUImJglCG0GLrcFAA/eoHsmtOkHjjMsziaeQSfHjsAk2QCXYIjg5QgapZryzVGdV/s1fdS9WV9Geb7ezh+st11/SVDJCUPn6+9x+r/8pU48EtceB79F8YZLPe4ytqISY8UfDl7zhviNl0yaCdOXlMyDcME/e/aFo2gdCwTDTtIzQDNcq09hqrKi1pMhE+cuoYIoTdGmSsDJVZOQUrP2jkL339DWphApcsBqsihCKZSGwWIPU/dWl7DyXqH0iMM/3HR9zbffdTWLPSww+9IwXUlx2kLVigl/hK9usEQLzbxz2Fibg8vyJ2DYsC4WRK4mMGi0gu2kVglTvzi2iq3vCIQO+wZCvp9wpYtxYMSAeJe2RdNn4jWMZUHbyvtA2fcMZWOP6WXrA+k30W4KxesPlsH/4IpDZ4N6dVIAo68+vgvQtZi5gRmU62U2FDlrosP4Q3dBXqsL9mDspHNzPQhIQ2sfb6UjQunvtZ8uGKccUp8ryqa6+MPjt/ZzWJGApu7Z5vXfYDM3uE+y85AE2idJO0Wspu4GDwJGUlcnr6pwZHs9CzWbQFur7USiMnHBTw== sbskv@anheebin"
 
 # Database Configuration
 db_name = "gamedb"
