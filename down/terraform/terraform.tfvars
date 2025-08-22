@@ -14,7 +14,7 @@ app_name = "game-server"
 domain_name = "your-domain.com"
 
 # Database password (REPLACE WITH YOUR SECURE PASSWORD)
-db_password = "GameServer2024!"
+db_password = "GameServer2024!@#"
 
 # EC2 Configuration
 instance_type = "t3.medium"
