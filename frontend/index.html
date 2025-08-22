@@ -307,19 +307,29 @@
         });
 
         // 트래픽 증가 함수
-        function increaseTraffic(amount = 50) {
-            currentTraffic += amount;
-            
-            // 시각적 효과 추가
-            createShotEffect();
-            createTrafficSpike(amount);
-            
-            // 차트 컨테이너에 쏘는 효과
-            const chartContainer = document.getElementById('chartContainer');
-            chartContainer.classList.add('shooting');
-            setTimeout(() => {
-                chartContainer.classList.remove('shooting');
-            }, 300);
+        async function increaseTraffic(amount = 50) {
+            try {
+                // 실제 API에 트래픽 기록 요청
+                await fetch('/api/traffic/record', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // 시각적 효과 추가
+                createShotEffect();
+                createTrafficSpike(amount);
+                
+                // 차트 컨테이너에 쏘는 효과
+                const chartContainer = document.getElementById('chartContainer');
+                chartContainer.classList.add('shooting');
+                setTimeout(() => {
+                    chartContainer.classList.remove('shooting');
+                }, 300);
+            } catch (error) {
+                console.error('Failed to record traffic:', error);
+            }
         }
 
         // 쏘는 효과 생성
@@ -348,54 +358,46 @@
         }
 
         // 실시간 데이터 업데이트 함수
-        function updateTraffic() {
-            // 새로운 트래픽 값 생성 (실제로는 API에서 가져올 데이터)
-            const baseTraffic = 80;
-            const variation = Math.sin(Date.now() / 10000) * 30; // 사인파 변동
-            const randomNoise = (Math.random() - 0.5) * 20; // 랜덤 노이즈
-            
-            // 쏘는 중이 아닐 때만 기본 트래픽 적용
-            if (!isShooting) {
-                currentTraffic = Math.max(0, Math.floor(baseTraffic + variation + randomNoise));
+        async function updateTraffic() {
+            try {
+                // 실제 API에서 트래픽 메트릭 가져오기
+                const response = await fetch('/api/traffic/metrics');
+                if (response.ok) {
+                    const metrics = await response.json();
+                    
+                    // 실제 트래픽 데이터로 업데이트
+                    currentTraffic = metrics.currentRPS;
+                    
+                    // 최근 데이터로 차트 업데이트
+                    if (metrics.recentData && metrics.recentData.length > 0) {
+                        trafficData = [...metrics.recentData];
+                        // 라벨도 업데이트
+                        labels = [];
+                        for (let i = 0; i < trafficData.length; i++) {
+                            const time = new Date();
+                            time.setSeconds(time.getSeconds() - (trafficData.length - i));
+                            labels.push(time.toLocaleTimeString());
+                        }
+                    }
+                    
+                    // 차트 업데이트
+                    chart.data.labels = labels;
+                    chart.data.datasets[0].data = trafficData;
+                    chart.update('none');
+                    
+                    // 통계 업데이트
+                    document.getElementById('currentTraffic').textContent = currentTraffic;
+                    document.getElementById('peakTraffic').textContent = metrics.peakRPS;
+                    document.getElementById('avgTraffic').textContent = metrics.averageRPS;
+                }
+            } catch (error) {
+                console.error('Failed to fetch traffic metrics:', error);
+                // API 호출 실패 시 기본값 유지
             }
-            
-            // 데이터 배열 업데이트
-            trafficData.shift();
-            trafficData.push(currentTraffic);
-            
-            // 라벨 업데이트
-            labels.shift();
-            labels.push(new Date().toLocaleTimeString());
-            
-            // 차트 업데이트
-            chart.data.labels = labels;
-            chart.data.datasets[0].data = trafficData;
-            chart.update('none'); // 애니메이션 없이 업데이트
-            
-            // 통계 업데이트
-            updateStats();
-            
-            // 쏘는 상태 리셋
-            isShooting = false;
         }
 
-        // 통계 업데이트 함수
-        function updateStats() {
-            // 현재 트래픽
-            document.getElementById('currentTraffic').textContent = currentTraffic;
-            
-            // 최고 트래픽
-            if (currentTraffic > peakTraffic) {
-                peakTraffic = currentTraffic;
-            }
-            document.getElementById('peakTraffic').textContent = peakTraffic;
-            
-            // 평균 트래픽
-            totalTraffic += currentTraffic;
-            dataCount++;
-            const avgTraffic = Math.floor(totalTraffic / dataCount);
-            document.getElementById('avgTraffic').textContent = avgTraffic;
-        }
+        // 통계 업데이트 함수는 API에서 직접 처리하므로 제거
+        // updateStats 함수 삭제됨
 
         // 이벤트 리스너들
         document.addEventListener('click', (e) => {
