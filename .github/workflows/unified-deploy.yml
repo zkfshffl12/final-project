@@ -139,13 +139,14 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
         
     - name: Install dependencies
       run: |
         cd frontend
         npm ci
         
-    - name: Build React app
+    - name: Build frontend
       run: |
         cd frontend
         npm run build
@@ -176,14 +177,14 @@ jobs:
       if: steps.get-bucket.outputs.skip_deploy != 'true'
       run: |
         # S3에 파일 업로드
-        aws s3 sync frontend/build/ s3://${{ steps.get-bucket.outputs.bucket_name }}/ \
+        aws s3 sync frontend/ s3://${{ steps.get-bucket.outputs.bucket_name }}/ \
           --delete \
           --cache-control "max-age=31536000,public" \
           --exclude "*.html" \
           --exclude "*.json"
           
         # HTML 파일은 캐시하지 않음
-        aws s3 sync frontend/build/ s3://${{ steps.get-bucket.outputs.bucket_name }}/ \
+        aws s3 sync frontend/ s3://${{ steps.get-bucket.outputs.bucket_name }}/ \
           --delete \
           --cache-control "no-cache,no-store,must-revalidate" \
           --include "*.html" \

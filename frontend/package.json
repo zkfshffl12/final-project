@@ -1,0 +1,22 @@
+{
+  "name": "game-server-frontend",
+  "version": "1.0.0",
+  "description": "Game Server Traffic Monitoring Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 3000 -o",
+    "build": "echo 'Static HTML build complete'",
+    "test": "echo 'No tests specified'"
+  },
+  "keywords": [
+    "traffic",
+    "monitoring",
+    "dashboard",
+    "game-server"
+  ],
+  "author": "Game Server Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

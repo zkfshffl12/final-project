@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 트래픽 모니터링</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: crosshair;
+            user-select: none;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 800px;
+            width: 90%;
+            position: relative;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            color: #666;
+            margin: 10px 0 0 0;
+            font-size: 1.1em;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+            border: 2px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-container:hover {
+            border-color: rgba(102, 126, 234, 0.6);
+            transform: scale(1.02);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            min-width: 120px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+        }
+        
+        .controls p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .shot-effect {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff6b6b, transparent);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: shotAnimation 0.5s ease-out forwards;
+            z-index: 1000;
+        }
+        
+        @keyframes shotAnimation {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+        
+        .traffic-spike {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff6b6b;
+            font-size: 2em;
+            font-weight: bold;
+            pointer-events: none;
+            animation: spikeAnimation 1s ease-out forwards;
+            z-index: 1001;
+        }
+        
+        @keyframes spikeAnimation {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(2) translateY(-50px);
+                opacity: 0;
+            }
+        }
+        
+        .chart-container.shooting {
+            border-color: #ff6b6b;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="status-indicator"></span>실시간 트래픽 모니터링</h1>
+            <p>게임 서버 트래픽 현황 - 트랙을 쏘아보세요!</p>
+        </div>
+        
+        <div class="controls">
+            <p>🎯 차트 영역을 클릭하거나 스페이스바를 눌러 트래픽을 증가시키세요</p>
+            <p>⬆️ ⬇️ 화살표 키로도 트래픽을 조절할 수 있습니다</p>
+        </div>
+        
+        <div class="chart-container" id="chartContainer">
+            <canvas id="trafficChart"></canvas>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="currentTraffic">0</div>
+                <div class="stat-label">현재 트래픽</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="peakTraffic">0</div>
+                <div class="stat-label">최고 트래픽</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="avgTraffic">0</div>
+                <div class="stat-label">평균 트래픽</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 차트 설정
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+        const maxDataPoints = 50;
+        let trafficData = [];
+        let labels = [];
+        let currentTraffic = 0;
+        let peakTraffic = 0;
+        let totalTraffic = 0;
+        let dataCount = 0;
+        let isShooting = false;
+
+        // 초기 데이터 생성
+        for (let i = 0; i < maxDataPoints; i++) {
+            const time = new Date();
+            time.setSeconds(time.getSeconds() - (maxDataPoints - i));
+            labels.push(time.toLocaleTimeString());
+            trafficData.push(Math.floor(Math.random() * 100) + 50);
+        }
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '트래픽 (requests/sec)',
+                    data: trafficData,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: 'rgb(75, 192, 192)',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '시간',
+                            color: '#666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            color: '#666',
+                            maxTicksLimit: 10
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '트래픽 (requests/sec)',
+                            color: '#666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            color: '#666',
+                            beginAtZero: true
+                        }
+                    }
+                },
+                animation: {
+                    duration: 750,
+                    easing: 'easeInOutQuart'
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+
+        // 트래픽 증가 함수
+        function increaseTraffic(amount = 50) {
+            currentTraffic += amount;
+            
+            // 시각적 효과 추가
+            createShotEffect();
+            createTrafficSpike(amount);
+            
+            // 차트 컨테이너에 쏘는 효과
+            const chartContainer = document.getElementById('chartContainer');
+            chartContainer.classList.add('shooting');
+            setTimeout(() => {
+                chartContainer.classList.remove('shooting');
+            }, 300);
+        }
+
+        // 쏘는 효과 생성
+        function createShotEffect() {
+            const effect = document.createElement('div');
+            effect.className = 'shot-effect';
+            effect.style.left = Math.random() * 80 + 10 + '%';
+            effect.style.top = Math.random() * 80 + 10 + '%';
+            document.body.appendChild(effect);
+            
+            setTimeout(() => {
+                effect.remove();
+            }, 500);
+        }
+
+        // 트래픽 스파이크 텍스트 생성
+        function createTrafficSpike(amount) {
+            const spike = document.createElement('div');
+            spike.className = 'traffic-spike';
+            spike.textContent = `+${amount}`;
+            document.body.appendChild(spike);
+            
+            setTimeout(() => {
+                spike.remove();
+            }, 1000);
+        }
+
+        // 실시간 데이터 업데이트 함수
+        function updateTraffic() {
+            // 새로운 트래픽 값 생성 (실제로는 API에서 가져올 데이터)
+            const baseTraffic = 80;
+            const variation = Math.sin(Date.now() / 10000) * 30; // 사인파 변동
+            const randomNoise = (Math.random() - 0.5) * 20; // 랜덤 노이즈
+            
+            // 쏘는 중이 아닐 때만 기본 트래픽 적용
+            if (!isShooting) {
+                currentTraffic = Math.max(0, Math.floor(baseTraffic + variation + randomNoise));
+            }
+            
+            // 데이터 배열 업데이트
+            trafficData.shift();
+            trafficData.push(currentTraffic);
+            
+            // 라벨 업데이트
+            labels.shift();
+            labels.push(new Date().toLocaleTimeString());
+            
+            // 차트 업데이트
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = trafficData;
+            chart.update('none'); // 애니메이션 없이 업데이트
+            
+            // 통계 업데이트
+            updateStats();
+            
+            // 쏘는 상태 리셋
+            isShooting = false;
+        }
+
+        // 통계 업데이트 함수
+        function updateStats() {
+            // 현재 트래픽
+            document.getElementById('currentTraffic').textContent = currentTraffic;
+            
+            // 최고 트래픽
+            if (currentTraffic > peakTraffic) {
+                peakTraffic = currentTraffic;
+            }
+            document.getElementById('peakTraffic').textContent = peakTraffic;
+            
+            // 평균 트래픽
+            totalTraffic += currentTraffic;
+            dataCount++;
+            const avgTraffic = Math.floor(totalTraffic / dataCount);
+            document.getElementById('avgTraffic').textContent = avgTraffic;
+        }
+
+        // 이벤트 리스너들
+        document.addEventListener('click', (e) => {
+            // 차트 영역 클릭 시 트래픽 증가
+            const chartContainer = document.getElementById('chartContainer');
+            if (chartContainer.contains(e.target)) {
+                increaseTraffic(30);
+                isShooting = true;
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    increaseTraffic(50);
+                    isShooting = true;
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    increaseTraffic(20);
+                    isShooting = true;
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    increaseTraffic(10);
+                    isShooting = true;
+                    break;
+            }
+        });
+
+        // 1초마다 데이터 업데이트
+        setInterval(updateTraffic, 1000);
+        
+        // 초기 실행
+        updateTraffic();
+    </script>
+</body>
+</html>
