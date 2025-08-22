@@ -33,8 +33,8 @@ resource "aws_instance" "spring_boot" {
 
 # Key Pair for SSH access
 resource "aws_key_pair" "main" {
-  key_name_prefix = "${var.environment}-key-pair-"
-  public_key      = var.ssh_public_key
+  key_name   = "${var.environment}-key-pair"
+  public_key = var.ssh_public_key
 
   tags = {
     Name        = "${var.environment}-key-pair"
