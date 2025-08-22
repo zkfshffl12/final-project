@@ -10,7 +10,7 @@ output "instance_private_ip" {
 
 output "key_pair_name" {
   description = "Name of the key pair"
-  value       = aws_key_pair.main.key_name
+  value       = data.aws_key_pair.existing.key_name
 }
 
 output "asg_name" {

@@ -2,7 +2,7 @@
 resource "aws_instance" "spring_boot" {
   ami                    = data.aws_ami.amazon_linux_2.id
   instance_type          = var.instance_type
-  key_name               = aws_key_pair.main.key_name
+  key_name               = data.aws_key_pair.existing.key_name
   vpc_security_group_ids = [var.ec2_security_group_id]
   subnet_id              = var.private_subnets[0]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
@@ -31,15 +31,9 @@ resource "aws_instance" "spring_boot" {
   }
 }
 
-# Key Pair for SSH access
-resource "aws_key_pair" "main" {
-  key_name   = "${var.environment}-key-pair"
-  public_key = var.ssh_public_key
-
-  tags = {
-    Name        = "${var.environment}-key-pair"
-    Environment = var.environment
-  }
+# Key Pair for SSH access - 기존 키 사용
+data "aws_key_pair" "existing" {
+  key_name = "${var.environment}-key-pair"
 }
 
 # IAM Role for EC2
@@ -140,7 +134,7 @@ resource "aws_launch_template" "main" {
   image_id      = data.aws_ami.amazon_linux_2.id
   instance_type = var.instance_type
 
-  key_name = aws_key_pair.main.key_name
+  key_name = data.aws_key_pair.existing.key_name
 
   network_interfaces {
     associate_public_ip_address = false

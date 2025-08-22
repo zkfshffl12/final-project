@@ -67,7 +67,7 @@ resource "aws_db_instance" "main" {
 
 # Secrets Manager for database password
 resource "aws_secretsmanager_secret" "db_password" {
-  name = "${var.environment}-db-password"
+  name = "${var.environment}-db-password-${formatdate("YYYYMMDD", timestamp())}"
 
   tags = {
     Name        = "${var.environment}-db-password"
