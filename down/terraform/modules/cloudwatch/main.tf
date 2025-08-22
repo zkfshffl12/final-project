@@ -1,6 +1,6 @@
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "application" {
-  name              = "/aws/application/${var.environment}-${formatdate("YYYYMMDD", timestamp())}"
+  name_prefix       = "/aws/application/${var.environment}-"
   retention_in_days = 30
 
   tags = {
@@ -10,7 +10,7 @@ resource "aws_cloudwatch_log_group" "application" {
 }
 
 resource "aws_cloudwatch_log_group" "ec2" {
-  name              = "/ec2/${var.environment}-spring-boot-${formatdate("YYYYMMDD", timestamp())}"
+  name_prefix       = "/ec2/${var.environment}-spring-boot-"
   retention_in_days = 30
 
   tags = {
@@ -33,7 +33,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_actions       = []
 
   dimensions = {
-    AutoScalingGroupName = "${var.environment}-asg"
+    AutoScalingGroupName = var.asg_name
   }
 
   tags = {
@@ -55,7 +55,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
   alarm_actions       = []
 
   dimensions = {
-    AutoScalingGroupName = "${var.environment}-asg"
+    AutoScalingGroupName = var.asg_name
   }
 
   tags = {
@@ -66,7 +66,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
 
 # CloudWatch Dashboard
 resource "aws_cloudwatch_dashboard" "main" {
-  dashboard_name = "${var.environment}-dashboard-${formatdate("YYYYMMDD", timestamp())}"
+  dashboard_name = "${var.environment}-dashboard"
 
   dashboard_body = jsonencode({
     widgets = [
@@ -79,8 +79,8 @@ resource "aws_cloudwatch_dashboard" "main" {
 
         properties = {
           metrics = [
-            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${var.environment}-asg"],
-            ["AWS/EC2", "MemoryUtilization", "AutoScalingGroupName", "${var.environment}-asg"]
+            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", var.asg_name],
+            ["AWS/EC2", "MemoryUtilization", "AutoScalingGroupName", var.asg_name]
           ]
           period = 300
           stat   = "Average"
@@ -97,7 +97,7 @@ resource "aws_cloudwatch_dashboard" "main" {
 
         properties = {
           metrics = [
-            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", "${var.environment}-alb"],
+            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", var.alb_name],
             [".", "TargetResponseTime", ".", "."]
           ]
           period = 300

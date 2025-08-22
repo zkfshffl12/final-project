@@ -76,4 +76,6 @@ module "rds" {
 module "cloudwatch" {
   source      = "./modules/cloudwatch"
   environment = var.environment
+  asg_name    = module.ec2.asg_name
+  alb_name    = module.alb.alb_name
 }
