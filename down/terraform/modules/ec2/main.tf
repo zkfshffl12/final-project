@@ -107,13 +107,13 @@ data "aws_ami" "amazon_linux_2" {
 
 # Auto Scaling Group for high availability
 resource "aws_autoscaling_group" "main" {
-  name                = "${var.environment}-asg"
-  desired_capacity    = var.desired_capacity
-  max_size            = var.max_size
-  min_size            = var.min_size
-  target_group_arns   = [var.target_group_arn]
-  vpc_zone_identifier = var.private_subnets
-  health_check_type   = "ELB"
+  name                      = "${var.environment}-asg"
+  desired_capacity          = var.desired_capacity
+  max_size                  = var.max_size
+  min_size                  = var.min_size
+  target_group_arns         = [var.target_group_arn]
+  vpc_zone_identifier       = var.private_subnets
+  health_check_type         = "ELB"
   health_check_grace_period = 300
 
   launch_template {

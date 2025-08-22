@@ -35,20 +35,20 @@ resource "aws_s3_bucket_public_access_block" "static_website" {
 
 # S3 Bucket Policy for CloudFront access
 resource "aws_s3_bucket_policy" "static_website" {
-  count = var.cloudfront_oai != "placeholder" ? 1 : 0
+  count  = var.cloudfront_oai != "placeholder" ? 1 : 0
   bucket = aws_s3_bucket.static_website.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "PublicReadGetObject"
-        Effect    = "Allow"
+        Sid    = "PublicReadGetObject"
+        Effect = "Allow"
         Principal = {
           AWS = "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${replace(var.cloudfront_oai, "origin-access-identity/cloudfront/", "")}"
         }
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.static_website.arn}/*"
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.static_website.arn}/*"
       }
     ]
   })
