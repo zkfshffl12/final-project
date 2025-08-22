@@ -120,99 +120,11 @@ jobs:
         docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest .
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-  # 3. Terraform 인프라 배포
-  terraform-deploy:
-    needs: docker-build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-        
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TF_VERSION }}
-        
-    - name: Terraform Format Check
-      run: terraform fmt -check -recursive
-      working-directory: ./down/terraform
-      
-    - name: Terraform Init
-      run: terraform init
-      working-directory: ./down/terraform
-      
-    - name: Terraform Validate
-      run: terraform validate
-      working-directory: ./down/terraform
-      
-    - name: Terraform Plan
-      id: plan
-      run: |
-        terraform plan \
-          -var="environment=${{ github.event.inputs.environment || 'production' }}" \
-          -var="aws_region=${{ env.AWS_REGION }}" \
-          -var="db_password=${{ secrets.DB_PASSWORD }}" \
-          -var="ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-          -out=tfplan
-      working-directory: ./down/terraform
-      
-    - name: Terraform Plan Status
-      if: steps.plan.outcome == 'failure'
-      run: exit 1
-      
-    - name: Terraform Apply
-      if: github.event.inputs.action == 'apply' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-      run: terraform apply -auto-approve tfplan
-      working-directory: ./down/terraform
-      
-    - name: Terraform Destroy
-      if: github.event.inputs.action == 'destroy'
-      run: |
-        terraform destroy \
-          -var="environment=${{ github.event.inputs.environment || 'production' }}" \
-          -var="aws_region=${{ env.AWS_REGION }}" \
-          -var="db_password=${{ secrets.DB_PASSWORD }}" \
-          -var="ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-          -auto-approve
-      working-directory: ./down/terraform
-      
-    - name: Get Terraform Outputs
-      if: github.event.inputs.action == 'apply' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-      run: |
-        # Terraform 출력값을 파일로 저장
-        terraform output -json > terraform_outputs.json
-        
-        # 주요 값들을 환경변수로 설정
-        CLOUDFRONT_URL=$(terraform output -raw cloudfront_domain_name 2>/dev/null || echo "")
-        ALB_URL=$(terraform output -raw alb_dns_name 2>/dev/null || echo "")
-        S3_BUCKET=$(terraform output -raw s3_bucket_name 2>/dev/null || echo "")
-        
-        echo "CLOUDFRONT_URL=$CLOUDFRONT_URL" >> $GITHUB_ENV
-        echo "ALB_URL=$ALB_URL" >> $GITHUB_ENV
-        echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
-        
-        echo "Terraform outputs saved"
-      working-directory: ./down/terraform
-      
-    - name: Upload Terraform outputs
-      if: github.event.inputs.action == 'apply' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-      uses: actions/upload-artifact@v4
-      with:
-        name: terraform-outputs
-        path: down/terraform/terraform_outputs.json
+  # 3. 정적 파일 배포 (S3 + CloudFront)
 
   # 4. 정적 파일 배포 (S3 + CloudFront)
   deploy-static:
-    needs: terraform-deploy
+    needs: docker-build
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -222,12 +134,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Download Terraform outputs
-      uses: actions/download-artifact@v4
-      with:
-        name: terraform-outputs
-        path: ./
-        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -256,11 +162,8 @@ jobs:
     - name: Get S3 bucket name
       id: get-bucket
       run: |
-        if [ -f "terraform_outputs.json" ]; then
-          BUCKET_NAME=$(cat terraform_outputs.json | jq -r '.s3_bucket_name.value // empty')
-        else
-          BUCKET_NAME=$(aws s3 ls | grep static-website | awk '{print $3}')
-        fi
+        # S3 버킷 이름을 직접 찾기
+        BUCKET_NAME=$(aws s3 ls | grep static-website | awk '{print $3}')
         
         if [ -z "$BUCKET_NAME" ]; then
           echo "S3 bucket not found. Skipping static deployment."
@@ -308,7 +211,7 @@ jobs:
 
   # 5. ECS 배포
   deploy-ecs:
-    needs: [terraform-deploy]
+    needs: [docker-build]
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -359,34 +262,20 @@ jobs:
 
   # 6. 배포 완료 알림
   deployment-summary:
-    needs: [terraform-deploy, deploy-static, deploy-ecs]
+    needs: [deploy-static, deploy-ecs]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-    - name: Download Terraform outputs
-      uses: actions/download-artifact@v4
-      with:
-        name: terraform-outputs
-        path: ./
-        
     - name: Deployment Summary
       run: |
         echo "## 🚀 배포 완료!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        if [ -f "terraform_outputs.json" ]; then
-          echo "### 📊 배포된 리소스:" >> $GITHUB_STEP_SUMMARY
-          echo "- **CloudFront URL**: $(cat terraform_outputs.json | jq -r '.cloudfront_domain_name.value // "N/A"')" >> $GITHUB_STEP_SUMMARY
-          echo "- **ALB URL**: $(cat terraform_outputs.json | jq -r '.alb_dns_name.value // "N/A"')" >> $GITHUB_STEP_SUMMARY
-          echo "- **S3 Bucket**: $(cat terraform_outputs.json | jq -r '.s3_bucket_name.value // "N/A"')" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🔄 배포된 서비스:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ 백엔드 API (ECS)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ 백엔드 API (Docker Image)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ 프론트엔드 (S3 + CloudFront)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ 인프라 (Terraform)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ ECS 서비스 업데이트" >> $GITHUB_STEP_SUMMARY
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📝 다음 단계:" >> $GITHUB_STEP_SUMMARY
