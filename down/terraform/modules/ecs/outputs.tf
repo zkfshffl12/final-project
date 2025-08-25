@@ -20,7 +20,7 @@ output "service_id" {
 
 output "service_arn" {
   description = "ECS service ARN"
-  value       = aws_ecs_service.backend.arn
+  value       = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:service/${aws_ecs_cluster.main.name}/${aws_ecs_service.backend.name}"
 }
 
 output "service_name" {
