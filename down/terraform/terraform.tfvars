@@ -1,5 +1,5 @@
 # AWS Region
-aws_region = "us-east-1"
+aws_region = "ap-northeast-2"
 
 # Environment
 environment = "heebin"
@@ -30,3 +30,13 @@ db_username = "admin"
 desired_capacity = 2
 max_size         = 4
 min_size         = 1
+
+# ECS Configuration
+container_image       = "ghcr.io/zkfshffl12/final-project:latest"
+container_port        = 3000
+task_cpu             = 256
+task_memory          = 512
+service_desired_count = 1
+
+# SSL Certificate (optional - for HTTPS)
+certificate_arn = ""

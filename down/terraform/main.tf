@@ -72,6 +72,28 @@ module "rds" {
   db_password           = var.db_password
 }
 
+# ECS Cluster and Service
+module "ecs" {
+  source                = "./modules/ecs"
+  environment           = var.environment
+  aws_region            = var.aws_region
+  vpc_id                = module.vpc.vpc_id
+  private_subnets       = module.vpc.private_subnets
+  alb_security_group_id = module.vpc.alb_security_group_id
+  target_group_arn      = module.alb.target_group_arn
+  alb_arn               = module.alb.alb_arn
+  certificate_arn       = var.certificate_arn
+  container_image       = var.container_image
+  container_port        = var.container_port
+  task_cpu              = var.task_cpu
+  task_memory           = var.task_memory
+  service_desired_count = var.service_desired_count
+  db_endpoint           = module.rds.db_endpoint
+  db_name               = var.db_name
+  db_username           = var.db_username
+  db_password           = var.db_password
+}
+
 # CloudWatch
 module "cloudwatch" {
   source      = "./modules/cloudwatch"

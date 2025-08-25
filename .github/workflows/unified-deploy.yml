@@ -43,8 +43,8 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: game-server
-  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER || 'virtual-waiting-room-cluster' }}
-  ECS_SERVICE: ${{ secrets.ECS_SERVICE || 'virtual-backend-service' }}
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER || 'heebin-cluster' }}
+  ECS_SERVICE: ${{ secrets.ECS_SERVICE || 'heebin-backend-service' }}
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   TF_VERSION: '1.5.0'
@@ -210,9 +210,58 @@ jobs:
           echo "CloudFront distribution not found"
         fi
 
+  # 4.5. Terraform 인프라 배포 (ECS 클러스터 및 서비스)
+  deploy-infrastructure:
+    needs: [docker-build]
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_ecs == 'true')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        
+    - name: Terraform Init
+      run: |
+        cd down/terraform
+        terraform init
+        
+    - name: Terraform Plan
+      run: |
+        cd down/terraform
+        terraform plan -out=tfplan
+        
+    - name: Terraform Apply
+      run: |
+        cd down/terraform
+        terraform apply -auto-approve tfplan
+        
+    - name: Wait for ECS cluster to be ready
+      run: |
+        echo "Waiting for ECS cluster to be active..."
+        aws ecs wait cluster-stable --clusters $ECS_CLUSTER || {
+          echo "❌ ECS cluster failed to become stable"
+          aws ecs describe-clusters --clusters $ECS_CLUSTER
+          exit 1
+        }
+        echo "✅ ECS cluster is now stable"
+
   # 5. ECS 배포
   deploy-ecs:
-    needs: [docker-build]
+    needs: [docker-build, deploy-infrastructure]
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -250,20 +299,89 @@ jobs:
         
     - name: Update ECS service
       run: |
+        echo "Updating ECS service with new deployment..."
+        
+        # 새로운 태스크 정의 생성
+        TASK_DEFINITION_ARN=$(aws ecs describe-services \
+          --cluster $ECS_CLUSTER \
+          --services $ECS_SERVICE \
+          --query 'services[0].taskDefinition' \
+          --output text)
+          
+        # 태스크 정의 복사 및 새 이미지로 업데이트
+        NEW_TASK_DEFINITION_ARN=$(aws ecs register-task-definition \
+          --cli-input-json "$(aws ecs describe-task-definition \
+            --task-definition $TASK_DEFINITION_ARN \
+            --query 'taskDefinition | {family: family, networkMode: networkMode, requiresCompatibilities: requiresCompatibilities, cpu: cpu, memory: memory, executionRoleArn: executionRoleArn, taskRoleArn: taskRoleArn, containerDefinitions: containerDefinitions}' \
+            --output json | jq '.containerDefinitions[0].image = "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"')" \
+          --query 'taskDefinition.taskDefinitionArn' \
+          --output text)
+          
+        # 서비스 업데이트
         aws ecs update-service \
           --cluster $ECS_CLUSTER \
           --service $ECS_SERVICE \
-          --force-new-deployment
+          --task-definition $NEW_TASK_DEFINITION_ARN \
+          --force-new-deployment || {
+          echo "❌ Failed to update ECS service"
+          echo "Checking if service exists and is active..."
+          aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE
+          exit 1
+        }
+        echo "✅ ECS service update initiated"
           
+    - name: Check ECS cluster and service status
+      run: |
+        echo "Checking ECS cluster status..."
+        CLUSTER_STATUS=$(aws ecs describe-clusters --clusters $ECS_CLUSTER --query 'clusters[0].status' --output text 2>/dev/null || echo "NOT_FOUND")
+        
+        if [ "$CLUSTER_STATUS" = "NOT_FOUND" ] || [ "$CLUSTER_STATUS" = "INACTIVE" ]; then
+          echo "❌ ECS cluster is not active. Status: $CLUSTER_STATUS"
+          echo "Please check your infrastructure deployment or recreate the cluster."
+          exit 1
+        fi
+        
+        echo "✅ ECS cluster is active. Status: $CLUSTER_STATUS"
+        
+        echo "Checking ECS service status..."
+        SERVICE_STATUS=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].status' --output text 2>/dev/null || echo "NOT_FOUND")
+        
+        if [ "$SERVICE_STATUS" = "NOT_FOUND" ]; then
+          echo "❌ ECS service not found. Please check your service configuration."
+          exit 1
+        fi
+        
+        echo "✅ ECS service found. Status: $SERVICE_STATUS"
+        
+        # 서비스가 INACTIVE인 경우 활성화 시도
+        if [ "$SERVICE_STATUS" = "INACTIVE" ]; then
+          echo "🔄 Attempting to activate ECS service..."
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --desired-count 1 || {
+            echo "❌ Failed to activate ECS service"
+            exit 1
+          }
+          echo "✅ ECS service activated"
+        fi
+        
     - name: Wait for deployment
       run: |
+        echo "Waiting for ECS service to become stable..."
         aws ecs wait services-stable \
           --cluster $ECS_CLUSTER \
-          --services $ECS_SERVICE
+          --services $ECS_SERVICE || {
+          echo "❌ ECS service failed to stabilize"
+          echo "Checking service details for troubleshooting..."
+          aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE
+          exit 1
+        }
+        echo "✅ ECS service is now stable"
 
   # 6. 배포 완료 알림
   deployment-summary:
-    needs: [deploy-static, deploy-ecs]
+    needs: [deploy-static, deploy-ecs, deploy-infrastructure]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     

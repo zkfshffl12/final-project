@@ -74,3 +74,40 @@ variable "min_size" {
   type        = number
   default     = 1
 }
+
+# ECS Variables
+variable "container_image" {
+  description = "Container image URI for ECS"
+  type        = string
+  default     = "ghcr.io/zkfshffl12/final-project:latest"
+}
+
+variable "container_port" {
+  description = "Container port for ECS"
+  type        = number
+  default     = 3000
+}
+
+variable "task_cpu" {
+  description = "Task CPU units for ECS"
+  type        = number
+  default     = 256
+}
+
+variable "task_memory" {
+  description = "Task memory in MiB for ECS"
+  type        = number
+  default     = 512
+}
+
+variable "service_desired_count" {
+  description = "Desired number of ECS tasks"
+  type        = number
+  default     = 1
+}
+
+variable "certificate_arn" {
+  description = "SSL certificate ARN for HTTPS"
+  type        = string
+  default     = ""
+}
