@@ -96,7 +96,7 @@ resource "aws_ecs_service" "backend" {
 
   network_configuration {
     subnets          = var.private_subnets
-    security_groups  = [var.ecs_security_group_id]
+    security_groups  = [aws_security_group.ecs.id]
     assign_public_ip = false
   }
 
