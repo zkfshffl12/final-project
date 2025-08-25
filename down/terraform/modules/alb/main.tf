@@ -15,9 +15,10 @@ resource "aws_lb" "main" {
 
 resource "aws_lb_target_group" "main" {
   name_prefix = "tg-"
-  port        = 8081
+  port        = 3000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
+  target_type = "ip"
 
   health_check {
     enabled             = true
