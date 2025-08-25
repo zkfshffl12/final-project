@@ -23,25 +23,7 @@ output "s3_website_endpoint" {
   value       = module.s3.website_endpoint
 }
 
-output "ec2_instance_id" {
-  description = "The ID of the EC2 instance"
-  value       = module.ec2.instance_id
-}
-
-output "ec2_private_ip" {
-  description = "The private IP of the EC2 instance"
-  value       = module.ec2.instance_private_ip
-}
-
-output "asg_name" {
-  description = "The name of the Auto Scaling Group"
-  value       = module.ec2.asg_name
-}
-
-output "key_pair_name" {
-  description = "The name of the key pair"
-  value       = module.ec2.key_pair_name
-}
+# EC2 관련 출력값들 제거 - ECS Fargate만 사용
 
 
 

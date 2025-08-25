@@ -42,23 +42,7 @@ module "cloudfront" {
   s3_bucket_regional_domain_name = module.s3.bucket_regional_domain_name
 }
 
-# EC2 Instances for Spring Boot Application
-module "ec2" {
-  source                = "./modules/ec2"
-  environment           = var.environment
-  aws_region            = var.aws_region
-  instance_type         = var.instance_type
-  ec2_security_group_id = module.vpc.ec2_security_group_id
-  private_subnets       = module.vpc.private_subnets
-  target_group_arn      = module.alb.target_group_arn
-  ssh_public_key        = var.ssh_public_key
-  db_endpoint           = module.rds.db_endpoint
-  db_name               = var.db_name
-  db_username           = var.db_username
-  desired_capacity      = var.desired_capacity
-  max_size              = var.max_size
-  min_size              = var.min_size
-}
+# EC2 모듈 제거 - ECS Fargate만 사용
 
 
 
@@ -98,6 +82,5 @@ module "ecs" {
 module "cloudwatch" {
   source      = "./modules/cloudwatch"
   environment = var.environment
-  asg_name    = module.ec2.asg_name
   alb_name    = module.alb.alb_name
 }

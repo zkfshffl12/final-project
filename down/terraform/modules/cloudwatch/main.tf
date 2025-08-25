@@ -9,57 +9,39 @@ resource "aws_cloudwatch_log_group" "application" {
   }
 }
 
-resource "aws_cloudwatch_log_group" "ec2" {
-  name_prefix       = "/ec2/${var.environment}-spring-boot-"
-  retention_in_days = 30
-
-  tags = {
-    Name        = "${var.environment}-ec2-logs"
-    Environment = var.environment
-  }
-}
-
-# CloudWatch Alarms
-resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name          = "${var.environment}-cpu-utilization-high"
+# ECS용 CloudWatch Alarms
+resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {
+  alarm_name          = "${var.environment}-ecs-cpu-utilization-high"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
+  namespace           = "AWS/ECS"
   period              = "300"
   statistic           = "Average"
   threshold           = "80"
-  alarm_description   = "This metric monitors EC2 CPU utilization"
+  alarm_description   = "This metric monitors ECS CPU utilization"
   alarm_actions       = []
 
-  dimensions = {
-    AutoScalingGroupName = var.asg_name
-  }
-
   tags = {
-    Name        = "${var.environment}-cpu-alarm"
+    Name        = "${var.environment}-ecs-cpu-alarm"
     Environment = var.environment
   }
 }
 
-resource "aws_cloudwatch_metric_alarm" "memory_high" {
-  alarm_name          = "${var.environment}-memory-utilization-high"
+resource "aws_cloudwatch_metric_alarm" "ecs_memory_high" {
+  alarm_name          = "${var.environment}-ecs-memory-utilization-high"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "MemoryUtilization"
-  namespace           = "AWS/EC2"
+  namespace           = "AWS/ECS"
   period              = "300"
   statistic           = "Average"
   threshold           = "80"
-  alarm_description   = "This metric monitors EC2 memory utilization"
+  alarm_description   = "This metric monitors ECS memory utilization"
   alarm_actions       = []
 
-  dimensions = {
-    AutoScalingGroupName = var.asg_name
-  }
-
   tags = {
-    Name        = "${var.environment}-memory-alarm"
+    Name        = "${var.environment}-ecs-memory-alarm"
     Environment = var.environment
   }
 }
@@ -79,13 +61,13 @@ resource "aws_cloudwatch_dashboard" "main" {
 
         properties = {
           metrics = [
-            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", var.asg_name],
-            ["AWS/EC2", "MemoryUtilization", "AutoScalingGroupName", var.asg_name]
+            ["AWS/ECS", "CPUUtilization"],
+            ["AWS/ECS", "MemoryUtilization"]
           ]
           period = 300
           stat   = "Average"
-          region = "us-east-1"
-          title  = "EC2 Auto Scaling Group Metrics"
+          region = "ap-northeast-2"
+          title  = "ECS Metrics"
         }
       },
       {
@@ -102,7 +84,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           ]
           period = 300
           stat   = "Sum"
-          region = "us-east-1"
+          region = "ap-northeast-2"
           title  = "ALB Metrics"
         }
       }
