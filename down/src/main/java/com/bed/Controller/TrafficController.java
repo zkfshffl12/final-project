@@ -1,6 +1,6 @@
-package main.java.com.bed.Controller;
+package com.bed.Controller;
 
-import main.java.com.bed.service.TrafficMetricsService;
+import com.bed.service.TrafficMetricsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;

@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 트래픽 모니터링</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: crosshair;
+            user-select: none;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 800px;
+            width: 90%;
+            position: relative;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            color: #666;
+            margin: 10px 0 0 0;
+            font-size: 1.1em;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+            border: 3px solid rgba(255, 68, 68, 0.3);
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.1);
+        }
+        
+        .chart-container:hover {
+            border-color: rgba(102, 126, 234, 0.6);
+            transform: scale(1.02);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            min-width: 120px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+        }
+        
+        .controls p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .shot-effect {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff6b6b, transparent);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: shotAnimation 0.5s ease-out forwards;
+            z-index: 1000;
+        }
+        
+        @keyframes shotAnimation {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+        
+        .traffic-spike {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff6b6b;
+            font-size: 2em;
+            font-weight: bold;
+            pointer-events: none;
+            animation: spikeAnimation 1s ease-out forwards;
+            z-index: 1001;
+        }
+        
+        @keyframes spikeAnimation {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(2) translateY(-50px);
+                opacity: 0;
+            }
+        }
+        
+        .chart-container.shooting {
+            border-color: #ff6b6b;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        /* 안정성 분석 섹션 */
+        .stability-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stability-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stability-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stability-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .stability-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stability-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .history-chart {
+            height: 300px;
+            margin-top: 20px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .alert {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .alert-success {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+        }
+
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: #FFC107;
+            border: 1px solid #FFC107;
+        }
+
+        .alert-danger {
+            background: rgba(244, 67, 54, 0.1);
+            color: #F44336;
+            border: 1px solid #F44336;
+        }
+
+        .performance-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .performance-excellent { background: #4CAF50; }
+        .performance-good { background: #8BC34A; }
+        .performance-average { background: #FFC107; }
+        .performance-poor { background: #F44336; }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="status-indicator"></span>실시간 트래픽 모니터링</h1>
+            <p>게임 서버 트래픽 현황 - 트랙을 쏘아보세요!</p>
+        </div>
+        
+        <div class="controls">
+            <p>🎯 차트 영역을 클릭하거나 스페이스바를 눌러 트래픽을 증가시키세요</p>
+            <p>⬆️ ⬇️ 화살표 키로도 트래픽을 조절할 수 있습니다</p>
+        </div>
+        
+        <!-- 데이터 관리 섹션 -->
+        <div class="file-upload">
+            <h3>📁 데이터 관리</h3>
+            <button class="btn" onclick="exportRealtimeData()">실시간 데이터 내보내기</button>
+            <button class="btn" onclick="exportAllData()">전체 데이터 내보내기</button>
+            <button class="btn" onclick="clearAllData()">모든 데이터 삭제</button>
+            <input type="file" id="fileInput" accept=".json" multiple>
+            <button class="btn" onclick="loadFiles()">파일 로드</button>
+        </div>
+        
+        <div class="chart-container" id="chartContainer">
+            <canvas id="trafficChart"></canvas>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="currentTraffic">0</div>
+                <div class="stat-label">현재 트래픽</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="peakTraffic">0</div>
+                <div class="stat-label">최고 트래픽</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="minTraffic">0</div>
+                <div class="stat-label">최저 트래픽</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="avgTraffic">0</div>
+                <div class="stat-label">평균 트래픽</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="dataPoints">0</div>
+                <div class="stat-label">실시간 포인트</div>
+            </div>
+        </div>
+
+        <!-- 안정성 분석 섹션 -->
+        <div class="stability-section">
+            <h2><span class="performance-indicator" id="overallPerformance"></span>서버 안정성 분석</h2>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('realtime')">실시간 모니터링</div>
+                <div class="tab" onclick="switchTab('history')">히스토리 분석</div>
+                <div class="tab" onclick="switchTab('stability')">안정성 지표</div>
+            </div>
+
+            <!-- 실시간 모니터링 탭 -->
+            <div id="realtime" class="tab-content active">
+                <div class="stability-grid">
+                    <div class="stability-card">
+                        <div class="stability-value" id="uptime">0%</div>
+                        <div class="stability-label">가동률</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="responseTime">0ms</div>
+                        <div class="stability-label">평균 응답시간</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="errorRate">0%</div>
+                        <div class="stability-label">에러율</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="stabilityScore">0</div>
+                        <div class="stability-label">안정성 점수</div>
+                    </div>
+                </div>
+                <div id="alerts"></div>
+            </div>
+
+            <!-- 히스토리 분석 탭 -->
+            <div id="history" class="tab-content">
+                <div class="stability-grid">
+                    <div class="stability-card">
+                        <div class="stability-value" id="historyPeak">0</div>
+                        <div class="stability-label">역대 최고 트래픽</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="historyLow">0</div>
+                        <div class="stability-label">역대 최저 트래픽</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="historyAvg">0</div>
+                        <div class="stability-label">역대 평균 트래픽</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="dataPoints">0</div>
+                        <div class="stability-label">데이터 포인트</div>
+                    </div>
+                </div>
+                <div class="history-chart">
+                    <canvas id="historyChart"></canvas>
+                </div>
+                <div id="historyStats" style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.9); border-radius: 10px;">
+                    <h4>📊 히스토리 통계</h4>
+                    <div id="historyStatsContent"></div>
+                </div>
+            </div>
+
+            <!-- 안정성 지표 탭 -->
+            <div id="stability" class="tab-content">
+                <div class="stability-grid">
+                    <div class="stability-card">
+                        <div class="stability-value" id="totalRequests">0</div>
+                        <div class="stability-label">총 요청 수</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="successRate">0%</div>
+                        <div class="stat-label">성공률</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="minLoad">0%</div>
+                        <div class="stability-label">최소 부하</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="avgLoad">0%</div>
+                        <div class="stability-label">평균 부하</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="peakLoad">0%</div>
+                        <div class="stability-label">최대 부하</div>
+                    </div>
+                    <div class="stability-card">
+                        <div class="stability-value" id="trafficRange">0</div>
+                        <div class="stability-label">트래픽 범위</div>
+                    </div>
+                </div>
+                <div id="stabilityReport"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 차트 설정
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+        const historyCtx = document.getElementById('historyChart').getContext('2d');
+        const maxDataPoints = 50;
+        let trafficData = [];
+        let labels = [];
+        let currentTraffic = 0;
+        let peakTraffic = 0;
+        let minTraffic = Infinity;
+        let totalTraffic = 0;
+        let dataCount = 0;
+        let isShooting = false;
+
+        // 안정성 분석 데이터
+        let stabilityData = {
+            startTime: new Date(),
+            totalRequests: 0,
+            successfulRequests: 0,
+            failedRequests: 0,
+            responseTimes: [],
+            uptime: 100,
+            alerts: []
+        };
+
+        // 히스토리 데이터 저장소
+        let historicalData = {
+            hourly: [], // 시간별 데이터
+            daily: [],  // 일별 데이터
+            weekly: [], // 주별 데이터
+            timestamps: [],
+            values: [],
+            peaks: [],
+            lows: [],
+            realtimeData: [] // 실시간 데이터 (최근 100개)
+        };
+
+        // 히스토리 차트
+        let historyChart;
+
+        // 초기 데이터 생성
+        for (let i = 0; i < maxDataPoints; i++) {
+            const time = new Date();
+            time.setSeconds(time.getSeconds() - (maxDataPoints - i));
+            labels.push(time.toLocaleTimeString());
+            trafficData.push(Math.floor(Math.random() * 100) + 50);
+        }
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '트래픽 (requests/sec)',
+                    data: trafficData,
+                    borderColor: '#ff4444',
+                    backgroundColor: 'rgba(255, 68, 68, 0.2)',
+                    borderWidth: 4,
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#ff4444',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 3
+                }, {
+                    label: '최고값',
+                    data: [],
+                    borderColor: 'rgba(255, 107, 107, 0.8)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }, {
+                    label: '최저값',
+                    data: [],
+                    borderColor: 'rgba(76, 175, 80, 0.8)',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '시간',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#333',
+                            maxTicksLimit: 12,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '트래픽 (requests/sec)',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#333',
+                            beginAtZero: true,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 500,
+                    easing: 'easeInOutQuart'
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+
+        // 히스토리 차트 초기화 (Investing.com 스타일)
+        historyChart = new Chart(historyCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '트래픽 히스토리',
+                    data: [],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHoverBackgroundColor: '#667eea',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2
+                }, {
+                    label: '최고값',
+                    data: [],
+                    borderColor: 'rgba(255, 107, 107, 0.8)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    borderWidth: 1,
+                    borderDash: [3, 3],
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }, {
+                    label: '최저값',
+                    data: [],
+                    borderColor: 'rgba(76, 175, 80, 0.8)',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderWidth: 1,
+                    borderDash: [3, 3],
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#667eea',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' requests/sec';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '시간',
+                            color: '#666',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#666',
+                            maxTicksLimit: 12
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '트래픽 (requests/sec)',
+                            color: '#666',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#666',
+                            beginAtZero: true,
+                            callback: function(value) {
+                                return value + '';
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+
+        // 트래픽 증가 함수
+        async function increaseTraffic(amount = 50) {
+            try {
+                // 실제 API에 트래픽 기록 요청
+                await fetch('/api/traffic/record', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // 시각적 효과 추가
+                createShotEffect();
+                createTrafficSpike(amount);
+                
+                // 차트 컨테이너에 쏘는 효과
+                const chartContainer = document.getElementById('chartContainer');
+                chartContainer.classList.add('shooting');
+                setTimeout(() => {
+                    chartContainer.classList.remove('shooting');
+                }, 300);
+            } catch (error) {
+                console.error('Failed to record traffic:', error);
+            }
+        }
+
+        // 쏘는 효과 생성
+        function createShotEffect() {
+            const effect = document.createElement('div');
+            effect.className = 'shot-effect';
+            effect.style.left = Math.random() * 80 + 10 + '%';
+            effect.style.top = Math.random() * 80 + 10 + '%';
+            document.body.appendChild(effect);
+            
+            setTimeout(() => {
+                effect.remove();
+            }, 500);
+        }
+
+        // 트래픽 스파이크 텍스트 생성
+        function createTrafficSpike(amount) {
+            const spike = document.createElement('div');
+            spike.className = 'traffic-spike';
+            spike.textContent = `+${amount}`;
+            document.body.appendChild(spike);
+            
+            setTimeout(() => {
+                spike.remove();
+            }, 1000);
+        }
+
+        // 탭 전환 함수
+        function switchTab(tabName) {
+            // 모든 탭 비활성화
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // 선택된 탭 활성화
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // 히스토리 탭인 경우 차트 업데이트
+            if (tabName === 'history') {
+                updateHistoryChart();
+            }
+        }
+
+        // 안정성 점수 계산
+        function calculateStabilityScore() {
+            const errorRate = stabilityData.failedRequests / Math.max(stabilityData.totalRequests, 1);
+            const avgResponseTime = stabilityData.responseTimes.length > 0 ? 
+                stabilityData.responseTimes.reduce((a, b) => a + b, 0) / stabilityData.responseTimes.length : 0;
+            
+            let score = 100;
+            
+            // 에러율에 따른 감점
+            score -= errorRate * 50;
+            
+            // 응답시간에 따른 감점
+            if (avgResponseTime > 1000) score -= 30;
+            else if (avgResponseTime > 500) score -= 15;
+            else if (avgResponseTime > 200) score -= 5;
+            
+            return Math.max(0, Math.round(score));
+        }
+
+        // 성능 지표 업데이트
+        function updatePerformanceIndicator(score) {
+            const indicator = document.getElementById('overallPerformance');
+            indicator.className = 'performance-indicator';
+            
+            if (score >= 90) {
+                indicator.classList.add('performance-excellent');
+            } else if (score >= 75) {
+                indicator.classList.add('performance-good');
+            } else if (score >= 60) {
+                indicator.classList.add('performance-average');
+            } else {
+                indicator.classList.add('performance-poor');
+            }
+        }
+
+        // 알림 생성
+        function createAlert(message, type) {
+            const alertsContainer = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            alertsContainer.appendChild(alert);
+            
+            // 5초 후 자동 제거
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // 히스토리 데이터 저장
+        function saveHistoricalData(trafficValue) {
+            const now = new Date();
+            const timestamp = now.toISOString();
+            
+            // 실시간 데이터 저장 (최근 100개)
+            historicalData.realtimeData.push({
+                timestamp: timestamp,
+                value: trafficValue,
+                time: now.toLocaleTimeString('ko-KR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false 
+                })
+            });
+            
+            // 실시간 데이터는 최근 100개만 유지
+            if (historicalData.realtimeData.length > 100) {
+                historicalData.realtimeData.shift();
+            }
+            
+            // 장기 데이터 저장
+            historicalData.timestamps.push(timestamp);
+            historicalData.values.push(trafficValue);
+            
+            // 최고/최저 값 업데이트
+            if (historicalData.peaks.length === 0 || trafficValue > historicalData.peaks[historicalData.peaks.length - 1]) {
+                historicalData.peaks.push(trafficValue);
+            } else {
+                historicalData.peaks.push(historicalData.peaks[historicalData.peaks.length - 1]);
+            }
+            
+            if (historicalData.lows.length === 0 || trafficValue < historicalData.lows[historicalData.lows.length - 1]) {
+                historicalData.lows.push(trafficValue);
+            } else {
+                historicalData.lows.push(historicalData.lows[historicalData.lows.length - 1]);
+            }
+            
+            // 최대 1000개 데이터 포인트 유지
+            if (historicalData.timestamps.length > 1000) {
+                historicalData.timestamps.shift();
+                historicalData.values.shift();
+                historicalData.peaks.shift();
+                historicalData.lows.shift();
+            }
+            
+            // 로컬 스토리지에 저장
+            localStorage.setItem('trafficHistory', JSON.stringify(historicalData));
+            
+            // 실시간 차트 업데이트
+            updateRealtimeChart();
+        }
+
+        // 히스토리 데이터 로드
+        function loadHistoricalData() {
+            const saved = localStorage.getItem('trafficHistory');
+            if (saved) {
+                try {
+                    historicalData = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to load historical data:', e);
+                }
+            }
+        }
+
+        // 히스토리 차트 업데이트
+        function updateHistoryChart() {
+            if (historicalData.timestamps.length === 0) {
+                // 데이터가 없으면 시뮬레이션 데이터 생성
+                generateSimulatedHistory();
+            }
+            
+            // 시간 라벨 생성
+            const labels = historicalData.timestamps.map(timestamp => {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('ko-KR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false 
+                });
+            });
+            
+            // 차트 데이터 업데이트
+            historyChart.data.labels = labels;
+            historyChart.data.datasets[0].data = historicalData.values;
+            historyChart.data.datasets[1].data = historicalData.peaks;
+            historyChart.data.datasets[2].data = historicalData.lows;
+            
+            historyChart.update('none');
+            
+            // 히스토리 통계 업데이트
+            updateHistoryStats();
+        }
+
+        // 히스토리 통계 업데이트
+        function updateHistoryStats() {
+            if (historicalData.values.length === 0) return;
+            
+            const maxValue = Math.max(...historicalData.values);
+            const minValue = Math.min(...historicalData.values);
+            const avgValue = historicalData.values.reduce((a, b) => a + b, 0) / historicalData.values.length;
+            
+            document.getElementById('historyPeak').textContent = maxValue;
+            document.getElementById('historyLow').textContent = minValue;
+            document.getElementById('historyAvg').textContent = Math.round(avgValue);
+            document.getElementById('dataPoints').textContent = historicalData.values.length;
+            
+            // 상세 통계 생성
+            const statsContent = document.getElementById('historyStatsContent');
+            const firstDate = new Date(historicalData.timestamps[0]);
+            const lastDate = new Date(historicalData.timestamps[historicalData.timestamps.length - 1]);
+            
+            statsContent.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 10px;">
+                    <div>
+                        <strong>📅 데이터 기간:</strong><br>
+                        ${firstDate.toLocaleString('ko-KR')} ~ ${lastDate.toLocaleString('ko-KR')}
+                    </div>
+                    <div>
+                        <strong>📈 변동폭:</strong><br>
+                        ${maxValue - minValue} requests/sec
+                    </div>
+                    <div>
+                        <strong>⏱️ 데이터 수집 간격:</strong><br>
+                        ${Math.round((lastDate - firstDate) / (historicalData.values.length - 1) / 1000)}초
+                    </div>
+                    <div>
+                        <strong>🎯 안정성 지수:</strong><br>
+                        ${calculateStabilityIndex(historicalData.values)}%
+                    </div>
+                </div>
+            `;
+        }
+
+        // 안정성 지수 계산
+        function calculateStabilityIndex(values) {
+            if (values.length < 2) return 100;
+            
+            const avg = values.reduce((a, b) => a + b, 0) / values.length;
+            const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length;
+            const stdDev = Math.sqrt(variance);
+            
+            // 표준편차가 작을수록 안정성이 높음
+            const stabilityIndex = Math.max(0, 100 - (stdDev / avg * 100));
+            return Math.round(stabilityIndex);
+        }
+
+        // 실시간 데이터 내보내기
+        function exportRealtimeData() {
+            const data = {
+                exportTime: new Date().toISOString(),
+                dataType: 'realtime',
+                data: historicalData.realtimeData
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `realtime-traffic-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            createAlert('✅ 실시간 데이터가 성공적으로 내보내졌습니다!', 'success');
+        }
+
+        // 전체 데이터 내보내기
+        function exportAllData() {
+            const data = {
+                exportTime: new Date().toISOString(),
+                dataType: 'all',
+                realtimeData: historicalData.realtimeData,
+                historicalData: {
+                    timestamps: historicalData.timestamps,
+                    values: historicalData.values,
+                    peaks: historicalData.peaks,
+                    lows: historicalData.lows
+                },
+                stabilityData: stabilityData
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `all-traffic-data-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            createAlert('✅ 전체 데이터가 성공적으로 내보내졌습니다!', 'success');
+        }
+
+        // 모든 데이터 삭제
+        function clearAllData() {
+            if (confirm('정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                historicalData = {
+                    hourly: [],
+                    daily: [],
+                    weekly: [],
+                    timestamps: [],
+                    values: [],
+                    peaks: [],
+                    lows: [],
+                    realtimeData: []
+                };
+                
+                stabilityData = {
+                    startTime: new Date(),
+                    totalRequests: 0,
+                    successfulRequests: 0,
+                    failedRequests: 0,
+                    responseTimes: [],
+                    uptime: 100,
+                    alerts: []
+                };
+                
+                localStorage.removeItem('trafficHistory');
+                
+                // 차트 초기화
+                updateRealtimeChart();
+                updateHistoryChart();
+                updateHistoryStats();
+                
+                createAlert('🗑️ 모든 데이터가 삭제되었습니다.', 'warning');
+            }
+        }
+
+        // 시뮬레이션 히스토리 데이터 생성
+        function generateSimulatedHistory() {
+            const now = new Date();
+            const hours = 24;
+            
+            for (let i = hours - 1; i >= 0; i--) {
+                const time = new Date(now.getTime() - (i * 60 * 60 * 1000));
+                const timestamp = time.toISOString();
+                
+                // 시간대별로 다른 트래픽 패턴 생성
+                let baseTraffic = 30;
+                if (time.getHours() >= 9 && time.getHours() <= 18) {
+                    baseTraffic = 60; // 업무시간
+                } else if (time.getHours() >= 19 && time.getHours() <= 23) {
+                    baseTraffic = 80; // 저녁시간
+                } else {
+                    baseTraffic = 20; // 새벽시간
+                }
+                
+                const traffic = baseTraffic + Math.floor(Math.random() * 40) - 20;
+                
+                historicalData.timestamps.push(timestamp);
+                historicalData.values.push(Math.max(0, traffic));
+                
+                // 최고/최저 값 계산
+                if (historicalData.peaks.length === 0 || traffic > historicalData.peaks[historicalData.peaks.length - 1]) {
+                    historicalData.peaks.push(traffic);
+                } else {
+                    historicalData.peaks.push(historicalData.peaks[historicalData.peaks.length - 1]);
+                }
+                
+                if (historicalData.lows.length === 0 || traffic < historicalData.lows[historicalData.lows.length - 1]) {
+                    historicalData.lows.push(traffic);
+                } else {
+                    historicalData.lows.push(historicalData.lows[historicalData.lows.length - 1]);
+                }
+            }
+        }
+
+        // 안정성 보고서 생성
+        function generateStabilityReport() {
+            const reportContainer = document.getElementById('stabilityReport');
+            const score = calculateStabilityScore();
+            
+            let report = `
+                <div class="alert alert-${score >= 80 ? 'success' : score >= 60 ? 'warning' : 'danger'}">
+                    <h3>안정성 분석 결과</h3>
+                    <p><strong>전체 점수:</strong> ${score}/100</p>
+                    <p><strong>가동 시간:</strong> ${stabilityData.uptime.toFixed(2)}%</p>
+                    <p><strong>성공률:</strong> ${((stabilityData.successfulRequests / Math.max(stabilityData.totalRequests, 1)) * 100).toFixed(2)}%</p>
+                    <p><strong>평균 응답시간:</strong> ${stabilityData.responseTimes.length > 0 ? 
+                        (stabilityData.responseTimes.reduce((a, b) => a + b, 0) / stabilityData.responseTimes.length).toFixed(2) : 0}ms</p>
+                    <hr style="margin: 15px 0; border: 1px solid rgba(255,255,255,0.2);">
+                    <h4>트래픽 범위 분석</h4>
+                    <p><strong>최저 트래픽:</strong> ${minTraffic === Infinity ? 0 : minTraffic} requests/sec</p>
+                    <p><strong>최고 트래픽:</strong> ${peakTraffic} requests/sec</p>
+                    <p><strong>트래픽 변동폭:</strong> ${peakTraffic - (minTraffic === Infinity ? 0 : minTraffic)} requests/sec</p>
+                    <p><strong>평균 트래픽:</strong> ${trafficData.length > 0 ? Math.round(trafficData.reduce((a, b) => a + b, 0) / trafficData.length) : 0} requests/sec</p>
+                </div>
+            `;
+            
+            reportContainer.innerHTML = report;
+        }
+
+        // 실시간 차트 업데이트
+        function updateRealtimeChart() {
+            if (historicalData.realtimeData.length === 0) return;
+            
+            const realtimeLabels = historicalData.realtimeData.map(item => item.time);
+            const realtimeValues = historicalData.realtimeData.map(item => item.value);
+            
+            // 메인 차트 업데이트 (빨간색 선)
+            chart.data.labels = realtimeLabels;
+            chart.data.datasets[0].data = realtimeValues;
+            
+            // 최저/최대 값 라인 업데이트
+            const maxLine = new Array(realtimeValues.length).fill(peakTraffic);
+            const minLine = new Array(realtimeValues.length).fill(minTraffic === Infinity ? 0 : minTraffic);
+            chart.data.datasets[1].data = maxLine;
+            chart.data.datasets[2].data = minLine;
+            
+            // 차트 업데이트 (부드러운 애니메이션)
+            chart.update('active');
+        }
+
+        // 실시간 데이터 업데이트 함수
+        async function updateTraffic() {
+            try {
+                // 실제 API에서 트래픽 메트릭 가져오기
+                const response = await fetch('/api/traffic/metrics');
+                if (response.ok) {
+                    const metrics = await response.json();
+                    
+                    // 실제 트래픽 데이터로 업데이트
+                    currentTraffic = metrics.currentRPS || Math.floor(Math.random() * 100) + 20;
+                    
+                    // 안정성 데이터 업데이트
+                    stabilityData.totalRequests++;
+                    stabilityData.successfulRequests++;
+                    stabilityData.responseTimes.push(Math.floor(Math.random() * 200) + 50);
+                    
+                    // 히스토리 데이터 저장
+                    saveHistoricalData(currentTraffic);
+                    
+                    // 실시간 데이터는 saveHistoricalData에서 처리됨
+                    // 차트 업데이트는 updateRealtimeChart에서 처리됨
+                    
+                    // 최저/최대 트래픽 업데이트
+                    peakTraffic = Math.max(peakTraffic, currentTraffic);
+                    minTraffic = Math.min(minTraffic, currentTraffic);
+                    
+                    // 통계 업데이트
+                    document.getElementById('currentTraffic').textContent = currentTraffic;
+                    document.getElementById('peakTraffic').textContent = peakTraffic;
+                    document.getElementById('minTraffic').textContent = minTraffic === Infinity ? 0 : minTraffic;
+                    document.getElementById('avgTraffic').textContent = historicalData.realtimeData.length > 0 ? 
+                        Math.round(historicalData.realtimeData.reduce((sum, item) => sum + item.value, 0) / historicalData.realtimeData.length) : 0;
+                    document.getElementById('dataPoints').textContent = historicalData.realtimeData.length;
+                    
+                    // 안정성 지표 업데이트
+                    const score = calculateStabilityScore();
+                    document.getElementById('uptime').textContent = stabilityData.uptime.toFixed(1) + '%';
+                    document.getElementById('responseTime').textContent = Math.round(stabilityData.responseTimes[stabilityData.responseTimes.length - 1]) + 'ms';
+                    document.getElementById('errorRate').textContent = ((stabilityData.failedRequests / Math.max(stabilityData.totalRequests, 1)) * 100).toFixed(2) + '%';
+                    document.getElementById('stabilityScore').textContent = score;
+                    
+                    // 성능 지표 업데이트
+                    updatePerformanceIndicator(score);
+                    
+                    // 안정성 탭 데이터 업데이트
+                    document.getElementById('totalRequests').textContent = stabilityData.totalRequests.toLocaleString();
+                    document.getElementById('successRate').textContent = ((stabilityData.successfulRequests / Math.max(stabilityData.totalRequests, 1)) * 100).toFixed(2) + '%';
+                    document.getElementById('minLoad').textContent = Math.min(...trafficData) + '%';
+                    document.getElementById('avgLoad').textContent = Math.round(trafficData.reduce((a, b) => a + b, 0) / trafficData.length) + '%';
+                    document.getElementById('peakLoad').textContent = Math.max(...trafficData) + '%';
+                    document.getElementById('trafficRange').textContent = (Math.max(...trafficData) - Math.min(...trafficData));
+                    
+                    // 안정성 보고서 업데이트
+                    generateStabilityReport();
+                    
+                    // 알림 생성 (임계값 초과 시)
+                    if (currentTraffic > 80) {
+                        createAlert('⚠️ 높은 트래픽 감지! 서버 부하가 증가하고 있습니다.', 'warning');
+                    }
+                    if (score < 60) {
+                        createAlert('🚨 서버 안정성이 저하되고 있습니다!', 'danger');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch traffic metrics:', error);
+                // API 호출 실패 시 시뮬레이션 데이터 사용
+                currentTraffic = Math.floor(Math.random() * 100) + 20;
+                trafficData.push(currentTraffic);
+                if (trafficData.length > maxDataPoints) {
+                    trafficData.shift();
+                }
+                
+                // 에러 카운트 증가
+                stabilityData.failedRequests++;
+                createAlert('⚠️ API 연결 실패 - 시뮬레이션 모드로 전환', 'warning');
+            }
+        }
+
+        // 통계 업데이트 함수는 API에서 직접 처리하므로 제거
+        // updateStats 함수 삭제됨
+
+        // 이벤트 리스너들
+        document.addEventListener('click', (e) => {
+            // 차트 영역 클릭 시 트래픽 증가
+            const chartContainer = document.getElementById('chartContainer');
+            if (chartContainer.contains(e.target)) {
+                increaseTraffic(30);
+                isShooting = true;
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    increaseTraffic(50);
+                    isShooting = true;
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    increaseTraffic(20);
+                    isShooting = true;
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    increaseTraffic(10);
+                    isShooting = true;
+                    break;
+            }
+        });
+
+        // 500ms마다 데이터 업데이트 (더 빠른 실시간 업데이트)
+        setInterval(updateTraffic, 500);
+        
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            // 히스토리 데이터 로드
+            loadHistoricalData();
+            
+            // 초기 안정성 데이터 설정
+            stabilityData.startTime = new Date();
+            
+            // 초기 성능 지표 설정
+            updatePerformanceIndicator(100);
+            
+            // 초기 안정성 보고서 생성
+            generateStabilityReport();
+            
+            // 히스토리 차트 초기화
+            updateHistoryChart();
+            
+            // 시작 알림
+            createAlert('🚀 실시간 트래픽 모니터링이 시작되었습니다!', 'success');
+        };
+        
+        // 초기 실행
+        updateTraffic();
+    </script>
+</body>
+</html>

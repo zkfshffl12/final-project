@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-DownApplication<down>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.bed.down.DownApplication",
+            "projectName": "down",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

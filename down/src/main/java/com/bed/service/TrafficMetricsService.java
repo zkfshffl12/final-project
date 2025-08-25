@@ -1,4 +1,4 @@
-package main.java.com.bed.service;
+package com.bed.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;

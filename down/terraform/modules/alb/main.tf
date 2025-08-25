@@ -15,7 +15,7 @@ resource "aws_lb" "main" {
 
 resource "aws_lb_target_group" "main" {
   name_prefix = "tg-"
-  port        = 8080
+  port        = 8081
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
 
@@ -45,6 +45,28 @@ resource "aws_lb_listener" "http" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.main.arn
+  }
+}
+
+# 루트 경로 리다이렉트 규칙
+resource "aws_lb_listener_rule" "root_redirect" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  action {
+    type = "redirect"
+    redirect {
+      port        = "#{port}"
+      protocol    = "#{protocol}"
+      status_code = "HTTP_302"
+      path        = "/"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/"]
+    }
   }
 }
 

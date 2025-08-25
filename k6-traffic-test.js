@@ -4,11 +4,13 @@ import { check, sleep } from 'k6';
 // 테스트 설정
 export const options = {
   stages: [
-    { duration: '30s', target: 10 },  // 30초간 10명의 사용자로 증가
-    { duration: '1m', target: 10 },   // 1분간 10명 유지
-    { duration: '30s', target: 50 },  // 30초간 50명으로 증가
-    { duration: '1m', target: 50 },   // 1분간 50명 유지
-    { duration: '30s', target: 0 },   // 30초간 0명으로 감소
+    { duration: '1m', target: 5 },    // 1분간 5명의 사용자로 증가
+    { duration: '2m', target: 5 },    // 2분간 5명 유지
+    { duration: '1m', target: 20 },   // 1분간 20명으로 증가
+    { duration: '2m', target: 20 },   // 2분간 20명 유지
+    { duration: '1m', target: 50 },   // 1분간 50명으로 증가
+    { duration: '2m', target: 50 },   // 2분간 50명 유지
+    { duration: '1m', target: 0 },    // 1분간 0명으로 감소
   ],
   thresholds: {
     http_req_duration: ['p(95)<500'], // 95%의 요청이 500ms 이내
@@ -16,8 +18,8 @@ export const options = {
   },
 };
 
-// 기본 URL (실제 서버 URL로 변경 필요)
-const BASE_URL = 'http://localhost:8080';
+// 기본 URL (스프링부트 서버)
+const BASE_URL = 'http://localhost:8081';
 
 export default function () {
   // 1. 헬스 체크 (기본 트래픽)

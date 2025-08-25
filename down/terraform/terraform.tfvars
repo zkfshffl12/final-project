@@ -2,7 +2,7 @@
 aws_region = "us-east-1"
 
 # Environment
-environment = "production-v2"
+environment = "heebin"
 
 # VPC CIDR
 vpc_cidr = "10.0.0.0/16"
