@@ -43,8 +43,8 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: game-server
-  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER || 'game-cluster' }}
-  ECS_SERVICE: ${{ secrets.ECS_SERVICE || 'game-service' }}
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER || 'virtual-waiting-room-cluster' }}
+  ECS_SERVICE: ${{ secrets.ECS_SERVICE || 'virtual-backend-service' }}
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   TF_VERSION: '1.5.0'
